@@ -1,0 +1,21 @@
+{
+  "name": "GUIATREND",
+  "short_name": "GUIATREND",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FF004F",
+  "theme_color": "#FF004F",
+  "description": "Guía Turística y Directorio Comercial para TODO MÉXICO - GUIATREND",
+  "icons": [
+    {
+      "src": "/images/parque%20fundidora.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "/images/parque%20fundidora.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
+    }
+  ]
+} 
