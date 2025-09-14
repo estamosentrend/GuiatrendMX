@@ -3,6 +3,12 @@
     "description": "Guía Turística de México - Next.js Application",
     "type": "project",
     "scripts": {
+        "post-install-cmd": [
+            "npm install"
+        ],
+        "post-update-cmd": [
+            "npm install"
+        ],
         "build": "npm run build",
         "start": "npm start"
     },
