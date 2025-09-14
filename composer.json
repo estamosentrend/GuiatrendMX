@@ -1,0 +1,15 @@
+{
+    "name": "guiatrend/guiatrend-nextjs",
+    "description": "Guía Turística de México - Next.js Application",
+    "type": "project",
+    "scripts": {
+        "build": "npm run build",
+        "start": "npm start"
+    },
+    "require": {
+        "php": ">=7.4"
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
