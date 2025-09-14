@@ -20,7 +20,7 @@ const directorioCategories = [
   },
   {
     id: 2,
-    name: 'Gastronomía',
+    name: 'Gastronomia',
     description: 'Descubre la mejor comida y restaurantes',
     icon: FiCoffee,
     color: 'from-orange-400 to-red-500',

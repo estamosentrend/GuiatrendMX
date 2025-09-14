@@ -1,86 +1,88 @@
-// src/pages/api/lugares.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { fetchDestinosFromSheet, fetchLugaresByThematicCategory, Destino, normalizeString } from '@/lib/googleSheets';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { fetchDestinosFromSheet, fetchLugaresByThematicCategory, normalizeString, Destino } from '@/lib/googleSheets';
 
-const SHEET_ID = process.env.GOOGLE_SHEETS_ID!;
+// Mapa para almacenar lugares cacheados por ciudad y categoría temática
+const lugaresCache = new Map<string, { data: Destino[]; timestamp: number }>();
 
-// Lista de categorías temáticas que se buscarán en las columnas de las hojas
-const THEMATIC_CATEGORIES = [
-  'Playas',
-  'Cultura',
-  'Familiar',
-  'Aventura',
-  'Vida Nocturna',
-  'Shopping',
-  'Romance',
-  'Turismo',
-];
-
-// Función para limpiar campos (reemplazo de la función eliminada)
-function limpiarCampo(valor: string): string | undefined {
-  if (!valor || valor.trim() === '' || valor.trim().toUpperCase() === 'NA') return undefined;
-  return valor;
-}
-
-// La función normalizeString ahora se importa de googleSheets.ts para consistencia
+// Duración de cache en segundos - 5 minutos (300 segundos) para detectar cambios rápidamente
+const CACHE_DURATION_SECONDS = 300;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Método no permitido' });
+  const { categoria, ciudad, destacados, forceRefresh } = req.query;
+
+  if (!categoria || !ciudad) {
+    return res.status(400).json({ error: 'Faltan parámetros: categoria y ciudad son requeridos' });
   }
 
-  const ciudad = typeof req.query.ciudad === 'string' ? req.query.ciudad : '';
-  const categoria = typeof req.query.categoria === 'string' ? req.query.categoria : 'Destinos';
-  const destacadosOnly = req.query.destacados === 'true';
-
   try {
-    // Determinar si la categoría solicitada es una temática
-    const isThematicCategory = THEMATIC_CATEGORIES.some(
-      (tc) => normalizeString(tc) === normalizeString(categoria)
-    );
-
-    let lugares: Destino[];
-    if (isThematicCategory) {
-      // Si es una categoría temática, usar la nueva función que busca en múltiples hojas
-      lugares = await fetchLugaresByThematicCategory(SHEET_ID, categoria, ciudad, destacadosOnly);
+    // Generar clave de cache
+    const cacheKey = `${normalizeString(ciudad as string)}:${normalizeString(categoria as string)}`;
+    
+    // Si forceRefresh es true, ignorar el cache y forzar recarga desde Google Sheets
+    if (forceRefresh === 'true') {
+      console.log(`Force refresh activado para: ${cacheKey} - Ignorando cache`);
     } else {
-      // Si es una categoría tradicional (ej. Destinos, Gastronomia), usar la función existente
-      const sheetName = normalizeString(categoria); // Asume que el nombre de la hoja es la categoría
-      lugares = await fetchDestinosFromSheet(SHEET_ID, sheetName, ciudad, destacadosOnly);
-    }
-
-    // Log the raw 'lugares' array received from googleSheets.ts for debugging
-    console.log(`Raw lugares array for category '${categoria}' and city '${ciudad}':`, lugares);
-
-    const resultado = lugares.map((d: Destino) => {
-      const obj: Record<string, string | undefined> = {
-        // Asegurar que nombre y ciudad siempre sean strings, incluso si están vacíos
-        nombre: (d["nombre"] || d["Nombre"] || '').toString().trim(),
-        ciudad: (d["ciudad"] || d["Ciudad"] || '').toString().trim(),
+      // Verificar si hay datos en cache y si aún son válidos
+      const cachedData = lugaresCache.get(cacheKey);
+      if (cachedData) {
+        const now = Date.now();
+        const cacheAge = (now - cachedData.timestamp) / 1000;  // Edad del cache en segundos
         
-        // Otros campos pueden usar limpiarCampo si undefined es un estado deseado
-        imagen: limpiarCampo((d["imagen"] || d["Imagen"] || '').toString()),
-        categoria: limpiarCampo((d["categoria"] || d["Categoría"] || '').toString()),
-        descripcion: limpiarCampo((d["descripcion"] || d["Descripción"] || '').toString()),
-        direccion: limpiarCampo((d["direccion"] || d["Dirección"] || '').toString()),
-        horario: limpiarCampo((d["horario"] || d["Horario"] || '').toString()),
-        precios: limpiarCampo((d["precios"] || d["Precios"] || '').toString()),
-        telefono: limpiarCampo((d["telefono"] || d["Teléfono"] || '').toString()),
-        whatsapp: limpiarCampo((d["whatsapp"] || d["WhatsApp"] || '').toString()),
-        website: limpiarCampo((d["website"] || d["Website"] || '').toString()),
-        mapa: limpiarCampo((d["mapa"] || d["Mapa"] || '').toString()),
-      };
-      // Eliminar solo los campos que son explícitamente undefined por limpiarCampo
-      Object.keys(obj).forEach(k => { 
-        if (obj[k] === undefined) {
-          delete obj[k]; 
+        if (cacheAge < CACHE_DURATION_SECONDS) {
+          console.log(`Usando cache para: ${cacheKey}`);
+          return res.status(200).json(cachedData.data);
+        } else {
+          console.log(`Cache expirado para: ${cacheKey}`);
+          lugaresCache.delete(cacheKey); // Eliminar datos expirados
         }
-      });
-      return obj;
+      }
+    }
+    
+    // Si no hay cache válido o no hay cache, obtener datos de Google Sheets
+    let lugares: Destino[] = [];
+    
+    // Lista de categorías principales que son hojas directas en Google Sheets
+    const mainCategories = ['Destinos', 'Gastronomia', 'Hospedaje', 'Emergencias', 'Directorio', 'Servicios', 'Inmuebles', 'Promociones'];
+    
+    if (mainCategories.includes(categoria as string)) {
+      // Para categorías principales, buscar solo en la hoja correspondiente
+      lugares = await fetchDestinosFromSheet(
+        process.env.GOOGLE_SHEETS_ID || '',
+        categoria as string,
+        ciudad as string,
+        destacados === 'true'
+      );
+    } else {
+      // Para categorías temáticas (Playas, Cultura, Vida Nocturna, etc.) y otras
+      lugares = await fetchLugaresByThematicCategory(
+        process.env.GOOGLE_SHEETS_ID || '',
+        categoria as string,
+        ciudad as string,
+        destacados === 'true'
+      );
+    }
+    
+    // Guardar resultados en cache
+    lugaresCache.set(cacheKey, {
+      data: lugares,
+      timestamp: Date.now()
     });
-    res.status(200).json(resultado);
-  } catch (error: unknown) {
-    console.error('Error en la API de lugares:', error);
-    res.status(500).json({ error: (error as Error).message || 'Error interno del servidor' });
+    console.log(`Guardado en cache: ${cacheKey}`);
+    
+    // Log para debugging
+    console.log(`Raw lugares array for category '${categoria}' and city '${ciudad}':`, lugares);
+    
+    // Log para verificar URLs de imagen
+    lugares.forEach((lugar, index) => {
+      console.log(`[API] Lugar ${index + 1} - ${lugar.nombre}:`, {
+        imagen: lugar.imagen,
+        isValidUrl: typeof lugar.imagen === 'string' && lugar.imagen.trim() !== '' ? 'Valida' : 'Inválida o vacía'
+      });
+    });
+    
+    res.status(200).json(lugares);
+  } catch (error) {
+    console.error('Error en API de lugares:', error);
+    res.status(500).json({ error: 'Error al obtener lugares', lugares: [] });
   }
 }

@@ -137,7 +137,7 @@ const slides: Slide[] = [
     image: '/images/otras regiones.webp',
     cta: {
       text: 'Ver Más Regiones',
-      href: '/destinos/otras'
+      href: '/destinos'
     },
     location: 'México',
     rating: 4.5,

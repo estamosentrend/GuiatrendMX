@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FiMapPin, FiPhone, FiMail, FiGlobe, FiClock, FiDollarSign, FiUser, FiSave, FiCheckCircle, FiAlertCircle, FiHome, FiBriefcase } from 'react-icons/fi';
+import { FiMapPin, FiGlobe, FiClock, FiDollarSign, FiUser, FiSave, FiCheckCircle, FiAlertCircle, FiHome } from 'react-icons/fi';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -169,7 +169,11 @@ export default function RegistroNegocio() {
       const formDataToSend = new FormData();
       Object.keys(formData).forEach(key => {
         if (key === 'imagenes') {
-          formDataToSend.append(key, formData[key] as any);
+          // Para arrays de archivos, necesitamos agregar cada archivo individualmente
+          const imagenes = formData.imagenes;
+          imagenes.forEach((file: File, index: number) => {
+            formDataToSend.append(`${key}[${index}]`, file);
+          });
         } else {
           formDataToSend.append(key, formData[key as keyof BusinessFormData] as string);
         }

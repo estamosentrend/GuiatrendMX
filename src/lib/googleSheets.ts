@@ -88,31 +88,30 @@ export async function fetchDestinosFromSheet(sheetId: string, sheetName: string,
 }
 
 /**
- * Lee y filtra datos de múltiples Google Sheets por una categoría temática.
+ * Lee y filtra datos de Google Sheets por categoría temática.
  * @param sheetId ID de la hoja de cálculo
- * @param thematicCategory Categoría temática a filtrar (ej: "Playas", "Cultura")
+ * @param thematicCategory Categoría temática a filtrar (ej: "Playas", "Cultura", "Gastronomia")
  * @param ciudad Ciudad a filtrar (opcional)
  */
 export async function fetchLugaresByThematicCategory(sheetId: string, thematicCategory: string, ciudad?: string, destacadosOnly?: boolean): Promise<Destino[]> {
   let allLugares: Destino[] = [];
   const normalizedThematicCategory = normalizeString(thematicCategory);
 
+  console.log(`[DEBUG] Buscando categoría temática: ${thematicCategory} (normalizada: ${normalizedThematicCategory})`);
+
+  // Buscar en TODAS las hojas principales para encontrar la columna temática
   for (const sheetName of THEMATIC_SHEETS) {
     try {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(sheetName)}?alt=json&key=${process.env.GOOGLE_SHEETS_API_KEY}`;
       const res = await fetch(url);
-      if (!res.ok) {
-        console.warn(`No se pudo acceder a la hoja de cálculo: ${sheetName}. Saltando...`);
-        continue;
-      }
+      if (!res.ok) continue;
+      
       const data = await res.json();
-      if (!data.values || !Array.isArray(data.values)) {
-        console.warn(`Formato de hoja inválido para ${sheetName}. Saltando...`);
-        continue;
-      }
+      if (!data.values || !Array.isArray(data.values)) continue;
 
       const [headers, ...rows] = data.values;
-
+      console.log(`[DEBUG] Hoja ${sheetName}: headers =`, headers);
+      
       const sheetLugares: Destino[] = rows.map((row: string[]) => {
         const obj: Record<string, string | number | boolean> = {};
         headers.forEach((h: string, i: number) => {
@@ -128,41 +127,47 @@ export async function fetchLugaresByThematicCategory(sheetId: string, thematicCa
     }
   }
 
-  // Filtrar por la columna temática y por ciudad si se proporciona
-  let filteredLugares = allLugares.filter(lugar => {
+  console.log(`[DEBUG] Total lugares encontrados antes de filtrar temática: ${allLugares.length}`);
+
+  // Filtrar por la columna temática
+  allLugares = allLugares.filter(lugar => {
     const thematicColumnKey = normalizedThematicCategory;
     const columnValue = lugar[thematicColumnKey];
-
-    console.log(`
---- Debugging Thematic Category Filter ---`);
-    console.log(`Thematic Category (normalized): '${thematicColumnKey}'`);
-    console.log(`Lugar Name: '${lugar.nombre}'`);
-    console.log(`Lugar City: '${lugar.ciudad}'`);
-    console.log(`All keys in lugar object:`, Object.keys(lugar));
-    console.log(`Value for '${thematicColumnKey}': '${columnValue}'`);
-    console.log(`--- End Debugging ---
-`);
-
-    // Verificar si la columna temática existe y tiene un valor '1' (o 'TRUE' si Google Sheets lo convierte)
-    // Se usa trim() y toUpperCase() para ser más robusto con los valores de la hoja
-    // También se añade Number() para manejar casos donde Google Sheets podría devolver un número
     const columnValueStr = columnValue?.toString() || '';
+    
+    // Log para depuración específico de categorías problemáticas
+    if ((thematicCategory === 'Vida Nocturna' || thematicCategory === 'Romance') && lugar.nombre) {
+      console.log(`[DEBUG] ${thematicCategory} - Lugar: ${lugar.nombre}, columna ${thematicColumnKey}: ${columnValue} (${typeof columnValue})`);
+      // Mostrar todas las columnas disponibles para este lugar
+      console.log(`[DEBUG] Todas las columnas disponibles:`, Object.keys(lugar));
+    }
+    
     return columnValue && (columnValue === '1' || columnValueStr.toUpperCase() === 'TRUE' || Number(columnValue) === 1);
   });
 
+  console.log(`[DEBUG] Total lugares después de filtrar temática: ${allLugares.length}`);
+
+  // Filtrar por ciudad si se proporciona
   if (ciudad) {
-    filteredLugares = filteredLugares.filter(lugar => {
-      // Explicitly normalize both sides of the comparison to be extra robust
-      const normalizedSheetCity = (lugar.ciudad || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[-\s]/g, '').toLowerCase();
-      const normalizedQueryCity = (ciudad || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[-\s]/g, '').toLowerCase();
-      return normalizedSheetCity === normalizedQueryCity;
+    console.log(`[DEBUG] Filtrando por ciudad: ${ciudad}`);
+    allLugares = allLugares.filter(lugar => {
+      const normalizedSheetCity = normalizeString(lugar.ciudad || '');
+      const normalizedQueryCity = normalizeString(ciudad);
+      const match = normalizedSheetCity === normalizedQueryCity;
+      
+      if (!match && lugar.nombre && normalizeString(lugar.nombre).includes('vallarta')) {
+        console.log(`[DEBUG] Puerto Vallarta no coincide - Ciudad en datos: "${lugar.ciudad}" (normalizada: ${normalizedSheetCity}), Ciudad buscada: "${ciudad}" (normalizada: ${normalizedQueryCity})`);
+      }
+      
+      return match;
     });
+    console.log(`[DEBUG] Total lugares después de filtrar ciudad: ${allLugares.length}`);
   }
 
-  // Eliminar duplicados basados en una combinación de nombre y ciudad para evitar mostrar el mismo lugar si aparece en varias hojas
-  // Usar lugar.nombre y lugar.ciudad (lowercase) para la clave de unicidad
-  const uniqueLugares = Array.from(new Map(filteredLugares.map(l => [`${normalizeString(l.nombre)}-${normalizeString(l.ciudad)}`, l])).values());
+  // Eliminar duplicados
+  const uniqueLugares = Array.from(new Map(allLugares.map(l => [`${normalizeString(l.nombre)}-${normalizeString(l.ciudad)}`, l])).values());
 
+  // Filtrar por destacados si se solicita
   let finalResults = uniqueLugares;
   if (destacadosOnly) {
     finalResults = finalResults.filter(lugar => {
@@ -171,5 +176,6 @@ export async function fetchLugaresByThematicCategory(sheetId: string, thematicCa
     });
   }
 
+  console.log(`[DEBUG] Resultados finales: ${finalResults.length} lugares`);
   return finalResults;
 }

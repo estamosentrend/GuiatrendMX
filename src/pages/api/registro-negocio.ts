@@ -63,7 +63,7 @@ export default async function handler(
               
               // Crear un objeto File simulado
               const file = new File([content], filename, { type: contentType });
-              formData.set(name, file as any);
+              formData.set(name, file as File);
             } else {
               // Es un campo de texto normal
               formData.set(name, content.trim());
@@ -112,8 +112,8 @@ export default async function handler(
     }
 
     // Procesar archivos si existen
-    let logoUrl = '';
-    let imagenesUrls: string[] = [];
+    // const logoUrl = ''; // Comentado: no se utiliza actualmente
+    // const imagenesUrls: string[] = []; // Comentado: no se utiliza actualmente
 
     // Aquí normalmente se subirían los archivos a un servicio de almacenamiento
     // Por ahora, solo mostraremos información en los logs
@@ -212,7 +212,7 @@ export default async function handler(
               <h3 style="color: #333; margin-bottom: 15px; font-size: 18px; border-bottom: 2px solid #667eea; padding-bottom: 5px;">Archivos Adjuntos</h3>
               <p style="margin: 8px 0;"><strong>Logo:</strong> ${logo ? logo.name : 'No proporcionado'}</p>
               <p style="margin: 8px 0;"><strong>Imágenes:</strong> ${imagenes.length} archivo(s)</p>
-              ${imagenes.length > 0 ? imagenes.map((img, index) => `<p style="margin: 5px 0 5px 20px;">• ${img.name}</p>`).join('') : ''}
+              ${imagenes.length > 0 ? imagenes.map((img) => `<p style="margin: 5px 0 5px 20px;">• ${img.name}</p>`).join('') : ''}
             </div>
             
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #666; font-size: 12px;">
@@ -275,12 +275,12 @@ export default async function handler(
       success: true 
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error al procesar el registro:', error);
     
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Error al procesar el registro. Por favor, intenta nuevamente más tarde.',
-      success: false 
+      success: false
     });
   }
 }

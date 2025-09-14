@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/Button';
 import { FiSun, FiMoon, FiMenu, FiX, FiSearch, FiMapPin } from 'react-icons/fi';
+import SearchModal from "@/components/ui/SearchModal";
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -22,6 +23,7 @@ interface MenuItem {
 const Header = () => {
   const { theme, setTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter();
 
@@ -46,6 +48,7 @@ const Header = () => {
         { name: 'Guadalajara', href: '/destinos/guadalajara' },
         { name: 'CDMX', href: '/destinos/cdmx' },
         { name: 'Cancún', href: '/destinos/cancun' },
+        { name: 'Palenque', href: '/destinos/palenque' },
         { name: 'Puerto Vallarta', href: '/destinos/puerto-vallarta' },
         { name: 'Veracruz', href: '/destinos/veracruz' },
         { name: 'Ver todos...', href: '/destinos' }
@@ -383,6 +386,7 @@ const Header = () => {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => setIsSearchOpen(true)}
               className="hidden sm:flex items-center space-x-2 bg-white/10 dark:bg-gray-800/50 backdrop-blur-sm border border-white/20 dark:border-gray-700/20 hover:bg-white/20 dark:hover:bg-gray-700/50"
             >
               <FiSearch className="w-4 h-4" />
@@ -404,7 +408,7 @@ const Header = () => {
             </Button>
 
             {/* CTA Button */}
-            <div className="hidden sm:block">
+            <div className="block">
               <Button variant="primary" size="sm" className="dark:bg-white dark:text-[var(--color-text-dark)] dark:hover:bg-gray-100">
                 Explorar
               </Button>
@@ -529,6 +533,7 @@ const Header = () => {
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700/50">
                 <Button
                   variant="secondary"
+                  onClick={() => setIsSearchOpen(true)}
                   className="w-full justify-start space-x-2 bg-[#3A3F45] hover:bg-[#454B52] text-white"
                 >
                   <FiSearch className="w-4 h-4" />
@@ -546,6 +551,12 @@ const Header = () => {
           </div>
         )}
       </div>
+      
+      {/* Search Modal */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
       </header>
     </>
   );

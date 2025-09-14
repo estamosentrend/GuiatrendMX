@@ -214,6 +214,14 @@ export default function ContactSection() {
                       className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-[var(--color-text-dark)] dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                       placeholder="Tu nombre"
                       required
+                      // Atributos para prevenir modificaciones de extensiones de navegador
+                      data-temp-mail-org="false"
+                      data-temp-mail="false"
+                      data-disposable="false"
+                      autoComplete="name"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
                     />
                   </div>
                 </div>
@@ -232,6 +240,14 @@ export default function ContactSection() {
                       className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-[var(--color-text-dark)] dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                       placeholder="tu@email.com"
                       required
+                      // Atributos para prevenir modificaciones de extensiones de navegador
+                      data-temp-mail-org="false"
+                      data-temp-mail="false"
+                      data-disposable="false"
+                      autoComplete="email"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
                     />
                   </div>
                 </div>
@@ -248,6 +264,14 @@ export default function ContactSection() {
                     placeholder="Escribe tu mensaje aquí..."
                     rows={5}
                     required
+                    // Atributos para prevenir modificaciones de extensiones de navegador
+                    data-temp-mail-org="false"
+                    data-temp-mail="false"
+                    data-disposable="false"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
                   />
                 </div>
                 <Button

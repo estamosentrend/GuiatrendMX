@@ -141,15 +141,15 @@ export default async function handler(
     if (error instanceof Error) {
       console.error('Detalles del error:', {
         message: error.message,
-        code: (error as any).code,
-        response: (error as any).response,
+        code: (error as { code?: string }).code,
+        response: (error as { response?: unknown }).response,
         stack: error.stack
       });
       
       // Mensajes de error más específicos
-      if ((error as any).code === 'EAUTH') {
+      if ((error as { code?: string }).code === 'EAUTH') {
         errorMessage = 'Error de autenticación. Verifica que tu correo y contraseña de aplicación sean correctos.';
-      } else if ((error as any).code === 'ETIMEDOUT') {
+      } else if ((error as { code?: string }).code === 'ETIMEDOUT') {
         errorMessage = 'Tiempo de espera agotado. Por favor, intenta nuevamente más tarde.';
       } else if (error.message.includes('blocked') || error.message.includes('spam')) {
         errorMessage = 'El email fue bloqueado por filtros de spam. Por favor, contacta directamente a estamosentrend@gmail.com';

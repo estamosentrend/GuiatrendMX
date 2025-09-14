@@ -24,7 +24,9 @@ export function useDirectorioData(ciudad: string, categoria?: string) {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch(`/api/lugares?ciudad=${ciudad}${categoria ? `&categoria=${categoria}` : ''}`)
+    // Si no se especifica categoría, usar "Destinos" como predeterminado
+    const finalCategoria = categoria || 'Destinos';
+    fetch(`/api/lugares?categoria=${finalCategoria}&ciudad=${encodeURIComponent(ciudad)}`)
       .then(res => {
         if (!res.ok) throw new Error('No se pudo cargar la información');
         return res.json();

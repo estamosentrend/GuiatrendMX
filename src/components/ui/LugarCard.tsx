@@ -110,6 +110,45 @@ function esValido(valor?: string): boolean {
          valorLimpio !== 'pendiente';
 }
 
+// Función para validar si una URL es válida - Comentada: no se utiliza actualmente
+// function isValidUrl(url: string): boolean {
+//   try {
+//     // Si la URL está vacía o es solo espacios, no es válida
+//     if (!url || url.trim() === '') return false;
+//
+//     // Limpiar la URL de espacios adicionales
+//     const cleanUrl = url.trim();
+//
+//     // Si no tiene un protocolo, asumimos que es una URL relativa o de dominio
+//     // pero aún así intentamos construirla para validar
+//     const urlToTest = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+//
+//     // Probar si la URL es válida
+//     const urlObj = new URL(urlToTest);
+//
+//     // Verificar que el protocolo sea http o https
+//     if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+//       return false;
+//     }
+//
+//     // Verificar que tenga un hostname válido
+//     if (!urlObj.hostname || urlObj.hostname === '') {
+//       return false;
+//     }
+//
+//     // Verificar que no sea una URL de localhost o IP local para producción
+//     if (urlObj.hostname === 'localhost' || urlObj.hostname.startsWith('192.168.') || urlObj.hostname.startsWith('10.')) {
+//       return false;
+//     }
+//
+//     return true;
+//   } catch (error) {
+//     // Si la URL no es válida, capturamos el error y devolvemos false
+//     console.warn('URL inválida detectada:', url, error);
+//     return false;
+//   }
+// };
+
 const LugarCard: React.FC<LugarCardProps> = ({ nombre, imagen, descripcion, direccion, website, telefono, whatsapp, precios, horario, mapa, onWebClick, onMapClick, onWhatsAppClick, rating, onImageClick }) => {
   const categoria = getCategoriaHorario(horario);
   const tags = extraerTags(descripcion, horario);
@@ -133,25 +172,45 @@ const LugarCard: React.FC<LugarCardProps> = ({ nombre, imagen, descripcion, dire
             <FiSearch className="w-5 h-5" />
           </button>
         )}
-        {imagen && imagen.trim() !== '' ? (
-          <Image
-            src={imagen}
-            alt={nombre}
-            fill
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 border-4 border-[rgba(255,255,255,0.25)] dark:border-[#181C20]/80 rounded-t-2xl"
-            onClick={onImageClick}
-            // Si la imagen falla en cargar (ej. error 403 de Google), la ocultamos sin romper la UI.
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              target.alt = 'Imagen no disponible'; // Mejora la accesibilidad
-            }}
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded-t-2xl">
-            <span className="text-gray-500 dark:text-gray-400 text-sm">Imagen no disponible</span>
-          </div>
-        )}
+        {(() => {
+          try {
+            // Debug: Log de la URL de imagen
+            console.log(`[LugarCard] Procesando imagen para ${nombre}:`, imagen);
+            
+            if (imagen && typeof imagen === 'string' && imagen.trim() !== '' && !imagen.includes('NA') && imagen.startsWith('http')) {
+              return (
+                <Image
+                  src={imagen}
+                  alt={nombre}
+                  fill
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 border-4 border-[rgba(255,255,255,0.25)] dark:border-[#181C20]/80 rounded-t-2xl cursor-pointer"
+                  onClick={onImageClick}
+                  onError={(e) => {
+                    console.log(`[LugarCard] Error al cargar imagen para ${nombre}:`, imagen);
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.alt = 'Imagen no disponible';
+                  }}
+                  style={{ objectFit: 'cover' }}
+                />
+              );
+            } else {
+              console.log(`[LugarCard] Imagen no disponible para ${nombre}:`, imagen);
+              return (
+                <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded-t-2xl">
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Imagen no disponible</span>
+                </div>
+              );
+            }
+          } catch (error) {
+            console.error(`[LugarCard] Error al renderizar imagen para ${nombre}:`, error);
+            return (
+              <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded-t-2xl">
+                <span className="text-gray-500 dark:text-gray-400 text-sm">Error al cargar imagen</span>
+              </div>
+            );
+          }
+        })()}
         {/* Precios sobre la imagen */}
         {precios && precios.trim().toLowerCase() !== 'na' && (
           <span className="absolute top-3 left-3 bg-gradient-to-r from-primary to-primary-light text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg">

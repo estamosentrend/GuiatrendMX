@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { FiX, FiCoffee, FiHome, FiAlertCircle, FiBookOpen, FiTool, FiHome as FiBuilding, FiTag, FiMapPin } from 'react-icons/fi';
 import "leaflet/dist/leaflet.css";
 import dynamic from "next/dynamic";
@@ -10,7 +11,6 @@ import LugarCard from "../ui/LugarCard";
 import WebsiteModal from "../ui/WebsiteModal";
 import ImageLightbox from "../ui/ImageLightbox";
 import useSWR from 'swr';
-import Image from 'next/image';
 
 interface Lugar {
   nombre: string;
@@ -185,20 +185,44 @@ export default function CategoriaModal({ open, onClose, categoria }: CategoriaMo
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [websiteModalUrl, setWebsiteModalUrl] = useState<string | null>(null);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  // const [refreshKey, setRefreshKey] = useState(0); // Comentado: no se utiliza actualmente
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Construir la URL de la API para SWR. La clave de caché se basa en categoria y ciudadActiva.
   // Esto permite que SWR maneje el caché de forma más inteligente y evite condiciones de carrera.
   const apiUrl = open && categoria && ciudadActiva
-    ? `/api/lugares?categoria=${encodeURIComponent(categoria)}&ciudad=${encodeURIComponent(ciudadActiva)}&destacados=true`
+    ? `/api/lugares?categoria=${encodeURIComponent(categoria)}&ciudad=${encodeURIComponent(ciudad?.nombre || '')}&destacados=true`
+    : null;
+  
+  // Construir la URL de la API para forzar actualización (sin cache)
+  const apiUrlForceRefresh = open && categoria && ciudadActiva
+    ? `/api/lugares?categoria=${encodeURIComponent(categoria)}&ciudad=${encodeURIComponent(ciudad?.nombre || '')}&destacados=true&forceRefresh=true`
     : null;
 
-  // Usar useSWR para la carga de datos. SWR se encargará de no hacer peticiones innecesarias.
-  const { data: lugares, error, isLoading } = useSWR<Lugar[]>(apiUrl, fetcher, {
-    // Opcional: Forzar una revalidación cada 5 minutos si los datos no cambian.
-    // refreshInterval: 5 * 60 * 1000,
-    // Evitar que SWR intente revalidar si la URL es nula
-    shouldRetryOnError: () => apiUrl !== null,
+  // Usar useSWR para la carga de datos con revalidación manual
+  const { data: lugares, error, isLoading, mutate } = useSWR<Lugar[]>(apiUrl, fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    shouldRetryOnError: false,
   });
+
+  // Función para forzar actualización de datos
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      // Usar la URL con forceRefresh=true para ignorar el cache
+      await fetch(apiUrlForceRefresh!).then(res => res.json());
+      // Forzar revalidación de los datos normales
+      await mutate(undefined, true);
+      // Comentado: no se utiliza actualmente el refreshKey
+    } catch (error) {
+      console.error('Error al refrescar datos:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Los lugares ya vienen filtrados por ciudad desde la API, no es necesario un filtro adicional aquí
   const lugaresFiltrados = Array.isArray(lugares) ? lugares : [];
@@ -230,9 +254,28 @@ export default function CategoriaModal({ open, onClose, categoria }: CategoriaMo
                 {getCategoriaIcon()}
                 <h2 className="text-xl font-bold text-[var(--color-text-dark)] dark:text-white">{categoria}</h2>
               </div>
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                <FiX className="w-6 h-6 text-gray-700 dark:text-gray-200" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Actualizar datos"
+                >
+                  {isRefreshing ? (
+                    <svg className="animate-spin h-5 w-5 text-gray-700 dark:text-gray-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                  )}
+                </button>
+                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                  <FiX className="w-6 h-6 text-gray-700 dark:text-gray-200" />
+                </button>
+              </div>
             </div>
             {/* Pestañas de ciudades */}
             <div className="px-2 py-3 grid grid-cols-2 gap-2 sm:grid-cols-4 border-b border-white/10 dark:border-gray-800/30 bg-transparent">
@@ -257,7 +300,7 @@ export default function CategoriaModal({ open, onClose, categoria }: CategoriaMo
               {/* Imagen de cabecera */}
               <div className="w-full h-40 md:h-96 rounded-2xl overflow-hidden mb-4 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 relative">
                 {/* Ícono de lightbox en la cabecera */}
-                {ciudad?.imagen && (
+                {ciudad?.imagen && typeof ciudad.imagen === 'string' && ciudad.imagen.trim() !== '' && !ciudad.imagen.includes('NA') && ciudad.imagen.startsWith('http') && (
                   <button
                     type="button"
                     onClick={() => setLightboxImg(ciudad.imagen)}
@@ -272,9 +315,9 @@ export default function CategoriaModal({ open, onClose, categoria }: CategoriaMo
                 <Image
                   src={ciudad?.imagen || ''}
                   alt={ciudad?.nombre || ''}
-                  width={1200}
-                  height={400}
+                  fill
                   className="w-full h-40 md:h-96 object-cover rounded-2xl"
+                  style={{ objectFit: 'cover' }}
                 />
               </div>
               {/* Descripción */}
