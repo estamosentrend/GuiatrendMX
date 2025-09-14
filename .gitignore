@@ -40,5 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Hostinger specific
-hostinger
+# Hostinger specific - REMOVED para que el archivo suba a GitHub
+# hostinger
