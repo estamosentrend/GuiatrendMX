@@ -4,13 +4,13 @@
     "type": "project",
     "scripts": {
         "post-install-cmd": [
-            "npm install"
+            "/usr/bin/npm install"
         ],
         "post-update-cmd": [
-            "npm install"
+            "/usr/bin/npm install"
         ],
-        "build": "npm run build",
-        "start": "npm start"
+        "build": "/usr/bin/npm run build",
+        "start": "/usr/bin/npm start"
     },
     "require": {
         "php": ">=7.4"

@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Instalar dependencias
-npm install
+/usr/bin/npm install
 
 # Construir la aplicación
-npm run build
+/usr/bin/npm run build
 
 # Iniciar el servidor en el puerto que Hostinger especifica
 export PORT=3000
 export HOST=0.0.0.0
-npm start
+/usr/bin/npm start
