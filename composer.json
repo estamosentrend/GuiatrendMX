@@ -4,13 +4,13 @@
     "type": "project",
     "scripts": {
         "post-install-cmd": [
-            "/usr/bin/npm install"
+            "which npm || /usr/local/bin/npm install || /opt/cpanel/ea-nodejs16/bin/npm install || echo 'Node.js not found'"
         ],
         "post-update-cmd": [
-            "/usr/bin/npm install"
+            "which npm || /usr/local/bin/npm install || /opt/cpanel/ea-nodejs16/bin/npm install || echo 'Node.js not found'"
         ],
-        "build": "/usr/bin/npm run build",
-        "start": "/usr/bin/npm start"
+        "build": "which npm && npm run build || /usr/local/bin/npm run build || /opt/cpanel/ea-nodejs16/bin/npm run build",
+        "start": "which npm && npm start || /usr/local/bin/npm start || /opt/cpanel/ea-nodejs16/bin/npm start"
     },
     "require": {
         "php": ">=7.4"

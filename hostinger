@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Instalar dependencias
-/usr/bin/npm install
+which npm && npm install || /usr/local/bin/npm install || /opt/cpanel/ea-nodejs16/bin/npm install || echo "Node.js no encontrado, usando composer solo"
 
 # Construir la aplicación
-/usr/bin/npm run build
+which npm && npm run build || /usr/local/bin/npm run build || /opt/cpanel/ea-nodejs16/bin/npm run build || echo "No se puede construir la aplicación"
 
 # Iniciar el servidor en el puerto que Hostinger especifica
 export PORT=3000
 export HOST=0.0.0.0
-/usr/bin/npm start
+which npm && npm start || /usr/local/bin/npm start || /opt/cpanel/ea-nodejs16/bin/npm start || echo "No se puede iniciar el servidor"
